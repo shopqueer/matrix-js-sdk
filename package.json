@@ -60,7 +60,7 @@
         "jwt-decode": "^4.0.0",
         "loglevel": "^1.7.1",
         "matrix-events-sdk": "0.0.1",
-        "matrix-widget-api": "^1.6.0",
+        "matrix-widget-api": "github:matrix-org/matrix-widget-api#383475bb385dd71a377564e89f7e05373c210c7c",
         "oidc-client-ts": "^3.0.1",
         "p-retry": "4",
         "sdp-transform": "^2.14.1",

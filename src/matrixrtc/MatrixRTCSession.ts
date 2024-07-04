@@ -879,7 +879,7 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
                         MEMBER_EVENT_CHECK_PERIOD,
                     );
                 } else {
-                    const res = await this.client._unstable_sendStateFuture(
+                    await this.client._unstable_sendStateFuture(
                         this.room.roomId,
                         {
                             // TODO: choose a reasonable timeout
@@ -888,17 +888,20 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
                         EventType.GroupCallMemberPrefix,
                         {}, // leave event
                         stateKey,
-                    );
-                    this.cancelFutureToken = res.cancel_token;
-                    this.scheduleRefreshFuture(res.refresh_token);
+                    ).then(res => {
+                        this.cancelFutureToken = res.cancel_token;
+                        this.scheduleRefreshFuture(res.refresh_token);
+                    }).catch((e) => logger.error("Failed to send future:", e));
                 }
             } else if (!legacy && this.cancelFutureToken !== undefined) {
                 // TODO: remove this once the Synapse MSC4140 implementation cancels timeout futures on state change
-                await this.client._unstable_useFutureToken(this.cancelFutureToken);
+                await this.client.
+                    _unstable_useFutureToken(this.cancelFutureToken)
+                    .catch((e) => logger.error("Failed to cancel future:", e));
             }
         } catch (e) {
             const resendDelay = CALL_MEMBER_EVENT_RETRY_DELAY_MIN + Math.random() * 2000;
-            logger.warn(`Failed to send call member event: retrying in ${resendDelay}`);
+            logger.warn(`Failed to send call member event (retrying in ${resendDelay}): ${e}`);
             await new Promise((resolve) => setTimeout(resolve, resendDelay));
             await this.triggerCallMembershipEventUpdate();
         }
@@ -913,7 +916,7 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
         this.client
             ._unstable_useFutureToken(refreshToken)
             .then(() => this.scheduleRefreshFuture(refreshToken))
-            .catch((err) => logger.error("Failed to refresh future", err));
+            .catch((e) => logger.error("Failed to refresh future", e));
     }
 
     private stateEventsContainOngoingLegacySession(callMemberEvents: Map<string, MatrixEvent>): boolean {

@@ -267,12 +267,12 @@ export class RoomWidgetClient extends MatrixClient {
     ): Promise<ISendEventResponse | ISendTimeoutFutureResponse | ISendActionFutureResponse> {
         if (futureOpts) {
             // TODO: updatePendingEvent for futures?
-            const response = await this.widgetApi.sendRoomFuture(
+            const response = await this.widgetApi.sendRoomEvent(
                 event.getType(),
                 event.getContent(),
+                room.roomId,
                 "future_timeout" in futureOpts ? futureOpts.future_timeout : undefined,
                 "future_group_id" in futureOpts ? futureOpts.future_group_id : undefined,
-                room.roomId,
             );
             if (!response.future_group_id) {
                 throw new Error("'future_group_id' absent from response to a futures request");
@@ -324,13 +324,13 @@ export class RoomWidgetClient extends MatrixClient {
         stateKey = "",
     ): Promise<ISendFutureResponse<F>> {
         // TODO: better type checking
-        return (await this.widgetApi.sendStateFuture(
+        return (await this.widgetApi.sendStateEvent(
             eventType,
             stateKey,
             content,
+            roomId,
             "future_timeout" in futureOpts ? futureOpts.future_timeout : undefined,
             "future_group_id" in futureOpts ? futureOpts.future_group_id : undefined,
-            roomId,
         )) as unknown as ISendFutureResponse<F>;
     }
 

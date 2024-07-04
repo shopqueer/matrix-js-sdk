@@ -274,8 +274,8 @@ export class RoomWidgetClient extends MatrixClient {
                 "future_group_id" in futureOpts ? futureOpts.future_group_id : undefined,
                 room.roomId,
             );
-            if (!response.group_id) {
-                throw new Error("'group_id' absent from response to a futures request");
+            if (!response.future_group_id) {
+                throw new Error("'future_group_id' absent from response to a futures request");
             }
             if (!response.send_token) {
                 throw new Error("'send_token' absent from response to a futures request");
@@ -284,7 +284,7 @@ export class RoomWidgetClient extends MatrixClient {
                 throw new Error("'cancel_token' absent from response to a futures request");
             }
             return {
-                future_group_id: response.group_id,
+                future_group_id: response.future_group_id,
                 send_token: response.send_token,
                 cancel_token: response.cancel_token,
                 ...(response.refresh_token && { refresh_token: response.refresh_token }),

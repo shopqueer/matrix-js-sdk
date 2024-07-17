@@ -95,6 +95,9 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
      * True if the room member is currently typing.
      */
     public typing = false;
+
+    private lastTyping = -1;
+
     /**
      * The human-readable name for this room member. This will be
      * disambiguated with a suffix of " (\@user_id:matrix.org)" if another member shares the
@@ -293,6 +296,7 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
         if (oldTyping !== this.typing) {
             this.updateModifiedTime();
             this.emit(RoomMemberEvent.Typing, event, this);
+            this.lastTyping = Date.now();
         }
     }
 
@@ -311,6 +315,14 @@ export class RoomMember extends TypedEventEmitter<RoomMemberEvent, RoomMemberEve
      */
     public getLastModifiedTime(): number {
         return this.modified;
+    }
+
+    /**
+     * Get the timestamp when this RoomMember was last seen typing.
+     * @returns The timestamp or -1 if the member has not been seen typing.
+     */
+    public getLastTypingTime(): number {
+        return this.typing ? Date.now() : this.lastTyping;
     }
 
     public isKicked(): boolean {

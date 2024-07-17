@@ -5350,7 +5350,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves: to an empty object `{}`
      * @returns Rejects: with an error response.
      */
-    public sendTyping(roomId: string, isTyping: boolean, timeoutMs: number): Promise<{}> {
+    public sendTyping(roomId: string, isTyping: boolean, timeoutMs: number, eventType?: string): Promise<{}> {
         if (this.isGuest()) {
             return Promise.resolve({}); // guests cannot send typing notifications so don't bother.
         }
@@ -5364,6 +5364,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         };
         if (isTyping) {
             data.timeout = timeoutMs ? timeoutMs : 20000;
+        }
+        if (eventType) {
+            data["io.element.type"] = eventType;
         }
         return this.http.authedRequest(Method.Put, path, undefined, data);
     }

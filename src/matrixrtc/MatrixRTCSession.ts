@@ -52,6 +52,8 @@ const MAKE_KEY_DELAY = 3000;
 // MAKE_KEY_DELAY + SEND_KEY_DELAY
 const USE_KEY_DELAY = 5000;
 
+const HEARTBEAT_INTERVAL = 2000;
+
 const getParticipantId = (userId: string, deviceId: string): string => `${userId}:${deviceId}`;
 const getParticipantIdFromMembership = (m: CallMembership): string => getParticipantId(m.sender!, m.deviceId);
 
@@ -122,6 +124,8 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
     private keysEventUpdateTimeout?: ReturnType<typeof setTimeout>;
     private makeNewKeyTimeout?: ReturnType<typeof setTimeout>;
     private setNewKeyTimeouts = new Set<ReturnType<typeof setTimeout>>();
+
+    private heartbeatInterval?: ReturnType<typeof setInterval>;
 
     // This is a Focus with the specified fields for an ActiveFocus (e.g. LivekitFocusActive for type="livekit")
     private ownFocusActive?: Focus;
@@ -237,6 +241,36 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
         this.setExpiryTimer();
     }
 
+    private startHeartbeat(): void {
+        if (this.heartbeatInterval) {
+            // already running
+            return;
+        }
+
+        this.sendHeartbeat();
+
+        this.heartbeatInterval = setInterval(() => this.sendHeartbeat, HEARTBEAT_INTERVAL);
+    }
+
+    private sendHeartbeat(): void {
+        // use timeout of HEARTBEAT_INTERVAL + 1s grace period
+
+        this.client
+            .sendTyping(this.room.roomId, true, HEARTBEAT_INTERVAL + 1000, EventType.GroupCallMemberPrefix)
+            .catch((e) => {
+                logger.warn("Failed to send heartbeat", e);
+            });
+    }
+
+    private async stopHeartbeat(): Promise<void> {
+        if (this.heartbeatInterval) {
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = undefined;
+        }
+        // n.b. I don't think the timeout has any effect here
+        await this.client.sendTyping(this.room.roomId, false, HEARTBEAT_INTERVAL, EventType.GroupCallMemberPrefix);
+    }
+
     /*
      * Returns true if we intend to be participating in the MatrixRTC session.
      * This is determined by checking if the relativeExpiry has been set.
@@ -297,6 +331,7 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
         // We don't wait for this, mostly because it may fail and schedule a retry, so this
         // function returning doesn't really mean anything at all.
         this.triggerCallMembershipEventUpdate();
+        this.startHeartbeat();
         this.emit(MatrixRTCSessionEvent.JoinStateChanged, true);
     }
 
@@ -341,6 +376,11 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
         this.manageMediaKeys = false;
         this.membershipId = undefined;
         this.emit(MatrixRTCSessionEvent.JoinStateChanged, false);
+        try {
+            await this.stopHeartbeat();
+        } catch (e) {
+            logger.warn("Failed to stop heartbeat", e);
+        }
 
         const timeoutPromise = new Promise((r) => {
             if (timeout) {

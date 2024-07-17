@@ -249,7 +249,7 @@ export class MatrixRTCSession extends TypedEventEmitter<MatrixRTCSessionEvent, M
 
         this.sendHeartbeat();
 
-        this.heartbeatInterval = setInterval(() => this.sendHeartbeat, HEARTBEAT_INTERVAL);
+        this.heartbeatInterval = setInterval(() => this.sendHeartbeat(), HEARTBEAT_INTERVAL);
     }
 
     private sendHeartbeat(): void {
